@@ -1,0 +1,145 @@
+# Premium Lounge Face Recognition Setup - 12 Hour Hackathon Plan
+
+This document outlines a complete 12-hour execution strategy for a 4-member hackathon team to build an AI-powered Premium Lounge access system.
+
+## 1. System Architecture Overview
+
+Data Flow:
+1. Camera Client (React) captures an image/video frame of the passenger and sends it to the Backend (FastAPI) via a multipart/form-data POST request.
+2. The Backend passes the image byte stream to the AI Engine (DeepFace/OpenCV).
+3. The AI Engine detects the face and computes a 128D/512D embedding vector.
+4. The Backend retrieves the pre-loaded Embedding Cache (In-Memory).
+5. A vectorized Cosine Similarity check runs to find the closest match.
+6. If the score > 0.75, Backend asynchronously writes a "granted" log to MongoDB and returns success. Otherwise, writes "denied".
+7. The Admin Dashboard (React) periodically fetches (or uses WebSockets) to pull entry logs from the Backend, securely authenticated via JWT.
+
+## 2. Complete Project Folder Structure
+
+premium-lounge-system/
+|
++-- backend/
+|   +-- requirements.txt
+|   +-- .env
+|   +-- main.py              # FastAPI application & routes
+|   +-- auth.py              # JWT authentication & password hashing
+|   +-- db.py                # MongoDB connection & in-memory cache class
+|   +-- models.py            # Pydantic schema definitions
+|   +-- face_engine.py       # DeepFace extraction & cosine similarity math
+|
++-- frontend/
+    +-- package.json
+    +-- .env
+    +-- src/
+        +-- App.jsx          # React Router setup
+        +-- api.js           # Axios/Fetch interceptors and API wrappers
+        +-- components/
+        |   +-- CameraCapture.jsx   # Webcam interface component
+        |   +-- Sidebar.jsx
+        |   +-- LogTable.jsx
+        +-- pages/
+            +-- Login.jsx           # Admin login portal
+            +-- Dashboard.jsx       # Real-time logs and stats
+            +-- RegisterMember.jsx  # Member registration form + Camera
+            +-- Verification.jsx    # The actual lounge entrance UI
+
+## 3. Work Division for 4 Members
+
+To maximize parallelism, the team is split into two Backend developers and two Frontend developers. 
+
+### Member 1: "The AI & Math Engineer" (Backend)
+Role: Implement the core facial recognition engine and memory management.
+* Files Owned: backend/face_engine.py, backend/models.py
+* Functions to Implement:
+  * get_embedding(image_bytes): Decode image, run DeepFace `represent`. Handle "no face detected" errors.
+  * cosine_similarity(vec_a, vec_b): Fast NumPy math.
+  * find_best_match(probe, cache, threshold): Loop/vectorize against the cache and return the top match over the threshold.
+* Deliverables: A standalone python script that can take an image path, return an embedding, and compare two images accurately.
+
+### Member 2: "The API & Data Architect" (Backend)
+Role: Build the FastAPI server, database connections, and secure it with JWT.
+* Files Owned: backend/main.py, backend/db.py, backend/auth.py
+* Endpoints built: /login, /register, /verify, /logs
+* Functions to Implement:
+  * MongoDB connection setup.
+  * The EmbeddingCache singleton that loads DB on startup.
+  * JWT creation and decoding middleware.
+  * Route handlers (wiring together Member 1's engine with API requests).
+* Deliverables: A fully running `uvicorn main:app` server that responds to Postman/cURL correctly, including DB writes.
+
+### Member 3: "The Dashboard Developer" (Frontend)
+Role: Build the Admin portal and handle state management and authentication.
+* Files Owned: frontend/src/pages/Dashboard.jsx, frontend/src/pages/Login.jsx, frontend/src/api.js
+* Tasks:
+  * Build Login UI and store the JWT in localStorage or context.
+  * Create Axios interceptor to attach Authorization: Bearer <token> to all requests.
+  * Build the Dashboard UI to fetch and display the /logs array in a clean table (DataGrid).
+* Deliverables: A working React application where an admin can log in, view past entries, and get redirected if not logged in.
+
+### Member 4: "The Lounge Experience Dev" (Frontend)
+Role: Build the real-time camera interfaces for the lounge entrance and registration.
+* Files Owned: frontend/src/pages/Verification.jsx, frontend/src/pages/RegisterMember.jsx, frontend/src/components/CameraCapture.jsx
+* Tasks:
+  * Implement react-webcam (or native MediaDevices API) to capture video frames.
+  * Build the "Register Member" form (Name, ID, Tier + snapshot).
+  * Build the "Kiosk Mode" Verification screen (Capture frame every 2 seconds, send to /verify, show huge full-screen "ACCESS GRANTED / DENIED" animations).
+* Deliverables: A slick UI that actually snaps photos and submits them as multipart/form-data blobs to the backend.
+
+## 4. API Contract Definitions
+
+Ensure all members agree on these exact formats on hour 1.
+
+1. POST /login (Form Data)
+* Req: username=admin&password=secret
+* Res: {"access_token": "ey...", "token_type": "bearer"}
+
+2. POST /register (Multipart/Form Data) [Auth Header Req]
+* Req: name (str), member_id (str), membership_type (str), valid_until (str), image (File Blob)
+* Res: {"status": "success", "message": "Member John Doe registered successfully."}
+
+3. POST /verify (Multipart/Form Data) [Public URL for Kiosk]
+* Req: image (File Blob)
+* Res (Match): {"status": "granted", "member_name": "John Doe", "confidence": 0.89}
+* Res (No Match): {"status": "denied", "message": "Face not recognized"}
+
+4. GET /logs [Auth Header Req]
+* Req Query (Optional): ?member_id=M001&limit=50
+* Res: {"logs": [{"timestamp": "2026-02-27T...", "member_id": "M001", "status": "granted", "confidence": 0.89}, ...]}
+
+## 5. Integration Plan 
+
+* Phase 1 (Mocking): Backend returns hardcoded JSON. Frontend uses mock JSON to build UI. Nobody waits for anyone.
+* Phase 2 (Unit Testing): Member 1 tests DeepFace locally. Member 2 tests MongoDB locally. Member 3 clicks around the Router. Member 4 ensures camera blobs look correct in console.log.
+* Phase 3 (Connecting): Run the API. Frontend points Axios to localhost:8000. Test /login and /logs first (easiest).
+* Phase 4 (The Big Test): Point Member 4's camera UI to /verify. Stand in front of the webcam. See if it grants access.
+* Phase 5 (Performance): Measure the 3-second requirement. Ensure cache is working and it isn't hitting MongoDB on every frame.
+
+## 6. Suggested Git Branch Strategy
+
+* main: The sacred, working code. Never push directly here.
+* dev: The integration branch.
+* feature/ai-engine (Member 1)
+* feature/api-auth (Member 2)
+* feature/dashboard (Member 3)
+* feature/camera-ui (Member 4)
+
+Workflow:
+Commit to feature branch -> Drop note in Slack/Discord -> Pull Request to dev -> Team quick review -> Merge to dev. 
+
+## 7. Parallel Development Timeline (12 Hours)
+
+* Hour 1 [00:00 - 01:00]: Architecture & Setup
+  * Create GitHub repo with frontend and backend folders.
+  * Everyone clones repo. Install PyMongo, FastAPI, React, etc.
+  * Agree 100% on the API contracts.
+* Hour 2-5 [01:00 - 05:00]: Head Down Execution
+  * Members work entirely isolated on their feature branches using mock data.
+* Hour 6 [05:00 - 06:00]: Midpoint Sync & Lunch
+  * Merge feature branches to dev. Resolve merge conflicts.
+* Hour 7-9 [06:00 - 09:00]: The Great Integration
+  * Frontend connects to Backend APIs. Test actual images passing from React to FastAPI.
+* Hour 10 [09:00 - 10:00]: Debugging & Edge Cases
+  * Handling "no face found" crashes. Fixing CORS errors. Fixing React state bugs.
+* Hour 11 [10:00 - 11:00]: UI Polish & Deployment
+  * Add animations (Red for denied, Green for granted). Make the dashboard look like a premium airline system (dark mode, sleek fonts).
+* Hour 12 [11:00 - 12:00]: Pitch Prep & Video Demo
+  * Write the pitch script. Record a flawless 2-minute video showing a successful registration and an instant access grant. Freeze code.
