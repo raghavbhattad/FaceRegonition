@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pymongo import MongoClient
 import numpy as np
 
@@ -54,6 +54,6 @@ def log_entry(member_id: str, status: str, confidence: float = None):
         "member_id": member_id,
         "status": status,
         "confidence": confidence,
-        "timestamp": datetime.utcnow()
+        "timestamp": datetime.now(timezone.utc)
     }
     db["entry_logs"].insert_one(log_data)

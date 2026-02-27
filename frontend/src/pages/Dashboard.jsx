@@ -6,6 +6,7 @@ import api from '../api';
 function Dashboard() {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({ total: 0, granted: 0, denied: 0 });
     const [currentTime, setCurrentTime] = useState(new Date());
     const navigate = useNavigate();
 
@@ -24,6 +25,7 @@ function Dashboard() {
         try {
             const response = await api.get('/logs?limit=50');
             setLogs(response.data.logs);
+            setStats(response.data.stats);
         } catch (err) { console.error(err); }
         finally { setLoading(false); }
     };
@@ -33,8 +35,6 @@ function Dashboard() {
         navigate('/login');
     };
 
-    const grantedCount = logs.filter(l => l.status === 'granted').length;
-    const deniedCount = logs.filter(l => l.status === 'denied').length;
     const recentLogs = logs.slice(0, 20);
 
     const StatCard = ({ icon: Icon, label, value, color, glow }) => (
@@ -135,9 +135,9 @@ function Dashboard() {
 
                     {/* Stats */}
                     <div className="grid grid-cols-3 gap-4 mb-8">
-                        <StatCard icon={Activity} label="Total Scans" value={logs.length} color="border-blue-500/30 text-blue-400" glow="bg-blue-500/10" />
-                        <StatCard icon={CheckCircle} label="Access Granted" value={grantedCount} color="border-green-500/30 text-green-400" glow="bg-green-500/10" />
-                        <StatCard icon={XCircle} label="Access Denied" value={deniedCount} color="border-red-500/30 text-red-400" glow="bg-red-500/10" />
+                        <StatCard icon={Activity} label="Total Scans" value={stats.total} color="border-blue-500/30 text-blue-400" glow="bg-blue-500/10" />
+                        <StatCard icon={CheckCircle} label="Access Granted" value={stats.granted} color="border-green-500/30 text-green-400" glow="bg-green-500/10" />
+                        <StatCard icon={XCircle} label="Access Denied" value={stats.denied} color="border-red-500/30 text-red-400" glow="bg-red-500/10" />
                     </div>
 
                     {/* Table */}

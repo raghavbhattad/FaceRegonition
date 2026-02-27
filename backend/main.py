@@ -106,6 +106,11 @@ async def get_logs(member_id: Optional[str] = None, limit: int = 50, current_adm
     if member_id:
         query["member_id"] = member_id
     
+    # Calculate global stats
+    total_count = db["entry_logs"].count_documents({})
+    granted_count = db["entry_logs"].count_documents({"status": "granted"})
+    denied_count = db["entry_logs"].count_documents({"status": "denied"})
+    
     logs = db["entry_logs"].find(query).sort("timestamp", -1).limit(limit)
     
     results = []
@@ -113,4 +118,11 @@ async def get_logs(member_id: Optional[str] = None, limit: int = 50, current_adm
         log["_id"] = str(log["_id"])
         results.append(log)
     
-    return {"logs": results}
+    return {
+        "logs": results,
+        "stats": {
+            "total": total_count,
+            "granted": granted_count,
+            "denied": denied_count
+        }
+    }
