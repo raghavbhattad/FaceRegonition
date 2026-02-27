@@ -2,9 +2,10 @@ import cv2
 import numpy as np
 from deepface import DeepFace
 
-def get_embedding(image_bytes: bytes) -> list:
+def get_embedding(image_bytes: bytes, check_liveness: bool = False) -> list:
     """
     Decodes image bytes to an OpenCV image and extracts facial embeddings using DeepFace.
+    If check_liveness is True, it also performs anti-spoofing detection.
     Returns the embedding as a list of floats.
     """
     nparr = np.frombuffer(image_bytes, np.uint8)
@@ -14,12 +15,29 @@ def get_embedding(image_bytes: bytes) -> list:
         raise ValueError("Invalid image file or format.")
     
     try:
-        # Get embedding using VGG-Face (default)
-        representation = DeepFace.represent(img_path=img, model_name="VGG-Face", enforce_detection=True)
-        if not representation:
-            raise ValueError("No faces detected.")
-        return representation[0]["embedding"]
+        if check_liveness:
+            # Extract face with anti-spoofing enabled
+            results = DeepFace.extract_faces(img_path=img, anti_spoofing=True, enforce_detection=True)
+            if not results:
+                raise ValueError("No faces detected.")
+            
+            face_obj = results[0]
+            if face_obj.get("is_real") is False:
+                raise ValueError("Spoof detected")
+            
+            # Now get embedding for the detected face
+            representation = DeepFace.represent(img_path=img, model_name="VGG-Face", enforce_detection=True)
+            return representation[0]["embedding"]
+        else:
+            # Traditional embedding extraction
+            representation = DeepFace.represent(img_path=img, model_name="VGG-Face", enforce_detection=True)
+            if not representation:
+                raise ValueError("No faces detected.")
+            return representation[0]["embedding"]
     except Exception as e:
+        # Pass through our specific errors
+        if "Spoof detected" in str(e) or "No faces detected" in str(e):
+            raise ValueError(str(e))
         raise ValueError(f"Face extraction failed: {str(e)}")
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:

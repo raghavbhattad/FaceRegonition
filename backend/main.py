@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -63,8 +64,11 @@ async def register_member(
     
     image_bytes = await image.read()
     try:
-        embedding = get_embedding(image_bytes)
+        # Check liveness during registration
+        embedding = get_embedding(image_bytes, check_liveness=True)
     except Exception as e:
+        if "Spoof detected" in str(e):
+            raise HTTPException(status_code=400, detail="Anti-spoofing check failed. Please provide a real face image.")
         raise HTTPException(status_code=400, detail=str(e))
     
     member_data = {
@@ -85,8 +89,13 @@ async def verify_face(image: UploadFile = File(...)):
     image_bytes = await image.read()
     
     try:
-        probe_embedding = get_embedding(image_bytes)
+        # Check liveness during verification
+        probe_embedding = get_embedding(image_bytes, check_liveness=True)
     except Exception as e:
+        if "Spoof detected" in str(e):
+            log_entry("unknown", "spoof", None)
+            return VerifyResponse(status="spoof", message="Spoofing attempt detected!")
+        
         log_entry("unknown", "denied", None)
         return VerifyResponse(status="denied", message="No face detected or processing failed.")
     
@@ -110,12 +119,16 @@ async def get_logs(member_id: Optional[str] = None, limit: int = 50, current_adm
     total_count = db["entry_logs"].count_documents({})
     granted_count = db["entry_logs"].count_documents({"status": "granted"})
     denied_count = db["entry_logs"].count_documents({"status": "denied"})
+    spoof_count = db["entry_logs"].count_documents({"status": "spoof"})
     
     logs = db["entry_logs"].find(query).sort("timestamp", -1).limit(limit)
     
     results = []
     for log in logs:
         log["_id"] = str(log["_id"])
+        # Ensure timestamp is ISO formatted with timezone for the frontend
+        if isinstance(log.get("timestamp"), datetime):
+            log["timestamp"] = log["timestamp"].replace(tzinfo=timezone.utc).isoformat()
         results.append(log)
     
     return {
@@ -123,6 +136,7 @@ async def get_logs(member_id: Optional[str] = None, limit: int = 50, current_adm
         "stats": {
             "total": total_count,
             "granted": granted_count,
-            "denied": denied_count
+            "denied": denied_count,
+            "spoof": spoof_count
         }
     }

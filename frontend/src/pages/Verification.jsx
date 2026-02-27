@@ -56,6 +56,10 @@ function Verification() {
                 setStatus('granted');
                 setMemberData(response.data);
                 setTimeout(() => setStatus('idle'), 5000);
+            } else if (response.data.status === 'spoof') {
+                setStatus('spoof');
+                setScanError('SPOOF ATTACK DETECTED!');
+                setTimeout(() => setStatus('idle'), 4000);
             } else {
                 setStatus('denied');
                 setScanError('Face not recognized.');
@@ -70,14 +74,16 @@ function Verification() {
         idle: 'border-blue-500/30 text-blue-400 bg-gray-900',
         scanning: 'border-yellow-500 text-yellow-500 bg-gray-900',
         granted: 'border-green-500 text-green-100 bg-green-900/40',
-        denied: 'border-red-500 text-red-100 bg-red-900/40'
+        denied: 'border-red-500 text-red-100 bg-red-900/40',
+        spoof: 'border-orange-500 text-orange-100 bg-orange-900/60'
     };
 
     const headerTextColor = {
         idle: 'text-white',
         scanning: 'text-yellow-300',
         granted: 'text-emerald-950 drop-shadow-none',
-        denied: 'text-rose-950 drop-shadow-none'
+        denied: 'text-rose-950 drop-shadow-none',
+        spoof: 'text-orange-950 drop-shadow-none'
     };
 
     const timeStr = currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -113,7 +119,7 @@ function Verification() {
                     {/* Biometric Scanning Overlay Graphics */}
                     <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                         {/* Center target UI */}
-                        <div className={`w-64 h-80 border-2 rounded-3xl transition-all duration-[2s] ${status === 'scanning' ? 'border-yellow-500 scale-110 shadow-[0_0_30px_rgba(234,179,8,0.5)]' : status === 'granted' ? 'border-green-500 shadow-[0_0_50px_rgba(34,197,94,0.6)] bg-green-500/10' : status === 'denied' ? 'border-red-500 shadow-[0_0_50px_rgba(239,68,68,0.6)] bg-red-500/10' : 'border-blue-500/50'}`}>
+                        <div className={`w-64 h-80 border-2 rounded-3xl transition-all duration-[2s] ${status === 'scanning' ? 'border-yellow-500 scale-110 shadow-[0_0_30px_rgba(234,179,8,0.5)]' : status === 'granted' ? 'border-green-500 shadow-[0_0_50px_rgba(34,197,94,0.6)] bg-green-500/10' : status === 'spoof' ? 'border-orange-500 shadow-[0_0_60px_rgba(249,115,22,0.7)] bg-orange-500/20' : status === 'denied' ? 'border-red-500 shadow-[0_0_50px_rgba(239,68,68,0.6)] bg-red-500/10' : 'border-blue-500/50'}`}>
 
                             {/* Corner brackets */}
                             <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-inherit rounded-tl-xl"></div>
@@ -145,6 +151,14 @@ function Verification() {
                                 <h1 className="text-5xl font-black tracking-widest text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.5)] mb-2">ACCESS GRANTED</h1>
                                 <p className="text-xl text-green-100 font-medium">Welcome, <span className="font-bold">{memberData?.member_name}</span></p>
                                 <div className="text-sm mt-3 font-mono opacity-60">Match Confidence: {(memberData?.confidence * 100).toFixed(2)}%</div>
+                            </div>
+                        )}
+
+                        {status === 'spoof' && (
+                            <div>
+                                <h1 className="text-5xl font-black tracking-widest text-orange-500 animate-bounce mb-2">SPOOF DETECTED</h1>
+                                <p className="text-lg text-orange-200 mt-2 font-medium bg-orange-950/50 py-1 px-4 rounded-full inline-block border border-orange-500/20 uppercase">Security Risk Identified</p>
+                                <p className="text-xs text-orange-400 mt-3 font-mono">Present a real face for liveness verification</p>
                             </div>
                         )}
 

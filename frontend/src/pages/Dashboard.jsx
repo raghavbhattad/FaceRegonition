@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Activity, Users, LogOut, CheckCircle, XCircle, ShieldCheck, TrendingUp, Clock, UserPlus } from 'lucide-react';
+import { Activity, Users, LogOut, CheckCircle, XCircle, ShieldCheck, TrendingUp, Clock, UserPlus, AlertCircle } from 'lucide-react';
 import api from '../api';
 
 function Dashboard() {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({ total: 0, granted: 0, denied: 0 });
+    const [stats, setStats] = useState({ total: 0, granted: 0, denied: 0, spoof: 0 });
     const [currentTime, setCurrentTime] = useState(new Date());
     const navigate = useNavigate();
 
@@ -134,10 +134,11 @@ function Dashboard() {
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-3 gap-4 mb-8">
+                    <div className="grid grid-cols-4 gap-4 mb-8">
                         <StatCard icon={Activity} label="Total Scans" value={stats.total} color="border-blue-500/30 text-blue-400" glow="bg-blue-500/10" />
                         <StatCard icon={CheckCircle} label="Access Granted" value={stats.granted} color="border-green-500/30 text-green-400" glow="bg-green-500/10" />
                         <StatCard icon={XCircle} label="Access Denied" value={stats.denied} color="border-red-500/30 text-red-400" glow="bg-red-500/10" />
+                        <StatCard icon={AlertCircle} label="Spoof Attacks" value={stats.spoof} color="border-orange-500/30 text-orange-400" glow="bg-orange-500/10" />
                     </div>
 
                     {/* Table */}
@@ -197,6 +198,10 @@ function Dashboard() {
                                                 {log.status === 'granted' ? (
                                                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
                                                         <CheckCircle className="w-3 h-3" /> Granted
+                                                    </span>
+                                                ) : log.status === 'spoof' ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                                                        <AlertCircle className="w-3 h-3" /> Spoof
                                                     </span>
                                                 ) : (
                                                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
