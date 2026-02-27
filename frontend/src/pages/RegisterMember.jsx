@@ -25,6 +25,32 @@ function RegisterMember() {
         document.title = 'Register';
     }, []);
 
+    useEffect(() => {
+        const calculateDate = () => {
+            const today = new Date();
+            let yearsToAdd = 0;
+            switch (formData.membership_type) {
+                case 'Silver': yearsToAdd = 1; break;
+                case 'Gold': yearsToAdd = 2; break;
+                case 'Platinum': yearsToAdd = 5; break;
+                case 'Lifetime':
+                    setFormData(prev => ({ ...prev, valid_until: '9999-12-31' }));
+                    return;
+                default: yearsToAdd = 0;
+            }
+
+            const futureDate = new Date(today.setFullYear(today.getFullYear() + yearsToAdd));
+            const formattedDate = futureDate.toISOString().split('T')[0];
+            setFormData(prev => ({ ...prev, valid_until: formattedDate }));
+        };
+
+        if (formData.membership_type !== 'Lifetime') {
+            calculateDate();
+        } else {
+            setFormData(prev => ({ ...prev, valid_until: '9999-12-31' }));
+        }
+    }, [formData.membership_type]);
+
     const dataURLtoBlob = (dataurl) => {
         let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
             bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
@@ -59,7 +85,7 @@ function RegisterMember() {
             payload.append('name', formData.name);
             payload.append('member_id', formData.member_id);
             payload.append('membership_type', formData.membership_type);
-            payload.append('valid_until', formData.membership_type === 'Lifetime' ? '9999-12-31' : formData.valid_until);
+            payload.append('valid_until', formData.valid_until);
             payload.append('image', imageBlob, 'capture.jpg');
             const response = await api.post('/register', payload, { headers: { 'Content-Type': 'multipart/form-data' } });
             setMessage(`success:${response.data.message}`);
@@ -246,7 +272,10 @@ function RegisterMember() {
 
                             {formData.membership_type !== 'Lifetime' && (
                                 <div>
-                                    <label className="text-xs text-gray-500 uppercase tracking-widest font-medium block mb-1.5">Valid Until</label>
+                                    <label className="text-xs text-gray-500 uppercase tracking-widest font-medium block mb-1.5">
+                                        Membership Duration
+                                        <span className="ml-2 lowercase text-[10px] font-normal text-blue-400/60">(auto-calculated)</span>
+                                    </label>
                                     <input type="date" name="valid_until" value={formData.valid_until} onChange={handleChange} onFocus={() => setFocused('date')} onBlur={() => setFocused('')}
                                         required className={inputClass('date')} />
                                 </div>

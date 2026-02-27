@@ -80,7 +80,7 @@ async def register_member(
     }
     
     db["members"].insert_one(member_data)
-    cache.add_to_cache(member_id, name, embedding)
+    cache.add_to_cache(member_id, name, valid_until, embedding)
     
     return {"status": "success", "message": f"Member {name} registered successfully."}
 
@@ -103,11 +103,25 @@ async def verify_face(image: UploadFile = File(...)):
     
     if match:
         member_id, member_name, confidence = match
+        
+        # Membership expiration check
+        member_info = cache.cache.get(member_id)
+        if member_info and member_info.get("valid_until"):
+            try:
+                valid_until_date = datetime.strptime(member_info["valid_until"], "%Y-%m-%d").date()
+                current_date = datetime.now().date()
+                
+                if current_date > valid_until_date:
+                    log_entry(member_id, "expired", confidence)
+                    return VerifyResponse(status="denied", message="Access denied - Membership expired.")
+            except Exception as e:
+                print(f"Error parsing date for {member_id}: {e}")
+
         log_entry(member_id, "granted", confidence)
         return VerifyResponse(status="granted", member_name=member_name, confidence=confidence)
     else:
         log_entry("unknown", "denied", None)
-        return VerifyResponse(status="denied", message="Face not recognized.")
+        return VerifyResponse(status="denied", message="Access denied - Face not recognized.")
 
 @app.get("/logs")
 async def get_logs(member_id: Optional[str] = None, limit: int = 50, current_admin: str = Depends(get_current_admin)):
@@ -120,6 +134,7 @@ async def get_logs(member_id: Optional[str] = None, limit: int = 50, current_adm
     granted_count = db["entry_logs"].count_documents({"status": "granted"})
     denied_count = db["entry_logs"].count_documents({"status": "denied"})
     spoof_count = db["entry_logs"].count_documents({"status": "spoof"})
+    expired_count = db["entry_logs"].count_documents({"status": "expired"})
     
     logs = db["entry_logs"].find(query).sort("timestamp", -1).limit(limit)
     
@@ -137,6 +152,7 @@ async def get_logs(member_id: Optional[str] = None, limit: int = 50, current_adm
             "total": total_count,
             "granted": granted_count,
             "denied": denied_count,
-            "spoof": spoof_count
+            "spoof": spoof_count,
+            "expired": expired_count
         }
     }
