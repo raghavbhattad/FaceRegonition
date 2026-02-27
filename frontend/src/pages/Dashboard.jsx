@@ -11,6 +11,7 @@ function Dashboard() {
     const navigate = useNavigate();
 
     useEffect(() => {
+        document.title = 'Dashboard';
         fetchLogs();
         const interval = setInterval(fetchLogs, 5000);
         return () => clearInterval(interval);
@@ -65,8 +66,8 @@ function Dashboard() {
                     <div className="flex items-center gap-3">
                         <div className="relative">
                             <div className="absolute inset-0 bg-blue-500/40 rounded-xl blur-md" />
-                            <div className="relative bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-xl">
-                                <ShieldCheck className="w-5 h-5 text-white" />
+                            <div className="relative bg-gray-950 border border-white/10 rounded-xl overflow-hidden w-10 h-10 p-1 flex items-center justify-center">
+                                <img src="/logo.png" alt="S" className="w-full h-full object-contain" />
                             </div>
                         </div>
                         <div>

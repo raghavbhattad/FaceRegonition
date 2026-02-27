@@ -11,6 +11,7 @@ function Verification() {
 
     // Live clock tick
     useEffect(() => {
+        document.title = 'Verification';
         const clockInterval = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(clockInterval);
     }, []);

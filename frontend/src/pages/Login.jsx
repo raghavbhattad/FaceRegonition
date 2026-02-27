@@ -12,6 +12,10 @@ function Login() {
     const [focused, setFocused] = useState('');
     const navigate = useNavigate();
 
+    useEffect(() => {
+        document.title = 'Login';
+    }, []);
+
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -59,8 +63,8 @@ function Login() {
                     <div className="text-center mb-8">
                         <div className="relative inline-flex mb-4">
                             <div className="absolute inset-0 bg-blue-500/30 rounded-2xl blur-xl" />
-                            <div className="relative bg-gradient-to-br from-blue-500 to-indigo-600 p-4 rounded-2xl shadow-lg">
-                                <ShieldCheck className="w-8 h-8 text-white" />
+                            <div className="relative bg-[#020817] border border-white/10 rounded-2xl overflow-hidden w-20 h-20 p-2 flex items-center justify-center">
+                                <img src="/logo.png" alt="SkyLounge" className="w-full h-full object-contain" />
                             </div>
                         </div>
                         <h1 className="text-2xl font-bold text-white tracking-tight">Admin Portal</h1>

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Webcam from 'react-webcam';
 import { ArrowLeft, Camera, UserPlus, RefreshCw, User, Award, CheckCircle, AlertCircle, ChevronDown } from 'lucide-react';
@@ -20,6 +20,10 @@ function RegisterMember() {
 
     const webcamRef = useRef(null);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        document.title = 'Register';
+    }, []);
 
     const dataURLtoBlob = (dataurl) => {
         let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
@@ -108,8 +112,8 @@ function RegisterMember() {
                 <div className="flex items-center gap-4 mb-8">
                     <div className="relative">
                         <div className="absolute inset-0 bg-blue-500/30 rounded-2xl blur-lg" />
-                        <div className="relative bg-gradient-to-br from-blue-500 to-indigo-600 p-3 rounded-2xl">
-                            <UserPlus className="w-7 h-7 text-white" />
+                        <div className="relative bg-gray-950 border border-white/10 rounded-2xl overflow-hidden w-14 h-14 p-1.5 flex items-center justify-center">
+                            <img src="/logo.png" alt="S" className="w-full h-full object-contain" />
                         </div>
                     </div>
                     <div>
